@@ -5,9 +5,9 @@
   "type": "module",
   "main": "app.mjs",
   "scripts": {
-    "start": "node app.mjs",
-    "dev": "node --watch app.mjs",
-    "seed": "node scripts/seed.mjs",
+    "start": "node --env-file-if-exists=.env app.mjs",
+    "dev": "node --watch --env-file-if-exists=.env app.mjs",
+    "seed": "node --env-file-if-exists=.env scripts/seed.mjs",
     "db": "mongod --dbpath ./data/db --port 27017"
   },
   "dependencies": {

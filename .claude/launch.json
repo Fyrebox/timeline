@@ -4,9 +4,9 @@
     {
       "name": "timeline",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["app.mjs"],
+      "runtimeArgs": ["--env-file-if-exists=.env", "app.mjs"],
       "port": 3210,
-      "env": { "PORT": "3210", "MONGODB_URI": "mongodb://127.0.0.1:27017/timeline" }
+      "env": { "PORT": "3210" }
     }
   ]
 }
