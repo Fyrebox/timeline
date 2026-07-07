@@ -32,6 +32,22 @@ function startOfToday() {
   return d;
 }
 
+/**
+ * The next N events that haven't ended yet (in-progress events included),
+ * sorted soonest-first. Used by the MCP server.
+ */
+export async function findNext({ limit = 10, now = new Date() } = {}) {
+  return Event.find({
+    $or: [
+      { endsAt: { $gte: now } },
+      { endsAt: null, startsAt: { $gte: now } }
+    ]
+  })
+    .sort({ startsAt: 1 })
+    .limit(limit)
+    .lean();
+}
+
 export async function createEvent(data) {
   return Event.create(data);
 }

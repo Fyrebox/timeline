@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "timeline": {
+      "command": "node",
+      "args": ["--env-file-if-exists=.env", "mcp/server.mjs"]
+    }
+  }
+}

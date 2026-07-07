@@ -9,13 +9,16 @@
     "dev": "node --watch --env-file-if-exists=.env app.mjs",
     "seed": "node --env-file-if-exists=.env scripts/seed.mjs",
     "icons": "node scripts/gen-icons.mjs",
+    "mcp": "node --env-file-if-exists=.env mcp/server.mjs",
     "db": "mongod --dbpath ./data/db --port 27017"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "express": "^4.21.2",
     "htmx.org": "^2.0.10",
     "mongoose": "^8.9.5",
-    "pug": "^3.0.3"
+    "pug": "^3.0.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "sharp": "^0.35.3"
