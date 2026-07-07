@@ -52,7 +52,7 @@ html, body {
 /* ---- Events ---- */
 .event {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* keep actions pinned next to the title as notes expand */
   gap: 12px;
   border-radius: 8px;
   padding: 10px 14px;
@@ -81,8 +81,13 @@ html, body {
   font-size: 13px;
   color: var(--muted);
   white-space: pre-wrap;
+  word-break: break-word;
   border-top: 1px solid var(--line);
   padding-top: 8px;
+}
+.event-notes a {
+  color: #6ea0ff;
+  text-decoration: underline;
 }
 
 .event-actions {

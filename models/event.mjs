@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomColor } from '../lib/colors.mjs';
 
 const eventSchema = new mongoose.Schema(
   {
@@ -49,6 +50,7 @@ export async function findNext({ limit = 10, now = new Date() } = {}) {
 }
 
 export async function createEvent(data) {
+  if (!data.color) data.color = randomColor();
   return Event.create(data);
 }
 

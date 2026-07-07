@@ -1,7 +1,7 @@
-// Minimal service worker: precache the app shell, serve static assets
-// cache-first, and navigations network-first (so events stay fresh, with an
-// offline fallback to the cached shell).
-const CACHE = 'timeline-v1';
+// Service worker: network-first so new deploys show up immediately when online,
+// with the cached app shell as an offline fallback. (The previous cache-first
+// strategy for assets is why CSS/JS updates could get stuck.)
+const CACHE = 'timeline-v2';
 const SHELL = [
   '/',
   '/css/timeline.css',
@@ -19,9 +19,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
@@ -30,22 +28,27 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
 
-  // Navigations: network-first, fall back to cached shell.
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('/', copy));
-          return res;
-        })
-        .catch(() => caches.match('/'))
-    );
-    return;
-  }
+  // Only handle same-origin requests; let everything else (e.g. APIs) pass through.
+  if (new URL(request.url).origin !== self.location.origin) return;
 
-  // Static assets: cache-first, fall back to network.
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request))
+    fetch(request)
+      .then((res) => {
+        // Cache a copy of successful responses for offline use.
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy));
+        }
+        return res;
+      })
+      .catch(async () => {
+        // Offline: exact match, then ignore the ?v= query, then the app shell.
+        const cache = await caches.open(CACHE);
+        return (
+          (await cache.match(request)) ||
+          (await cache.match(request, { ignoreSearch: true })) ||
+          (request.mode === 'navigate' ? await cache.match('/') : undefined)
+        );
+      })
   );
 });

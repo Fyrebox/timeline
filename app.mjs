@@ -53,6 +53,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Cache-busting token for static assets, bumped on every restart/deploy.
+const ASSET_VERSION = Date.now().toString(36);
+app.use((req, res, next) => {
+  res.locals.assetVersion = ASSET_VERSION;
+  next();
+});
+
 // OAuth authorization-server + protected-resource metadata, /authorize, /token,
 // /register (dynamic client registration), /revoke. Must be mounted at root.
 app.use(
