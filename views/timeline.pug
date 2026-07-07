@@ -1,0 +1,14 @@
+extends layout
+
+block content
+  .timeline-viewport#viewport
+    //- Server-rendered agenda. Polls every 60s so passed events drop off,
+    //- and is OOB-swapped by create/update/delete.
+    .timeline-track#track(hx-get='/events/list' hx-trigger='every 60s' hx-target='#track' hx-swap='innerHTML')
+      include partials/agenda
+
+  //- Modal mount point; filled by HTMX, emptied on save/cancel.
+  #dialog
+
+  //- Floating add button.
+  button.fab(hx-get='/events/new' hx-target='#dialog' hx-swap='innerHTML' title='New event') +

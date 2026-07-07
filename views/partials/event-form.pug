@@ -1,0 +1,45 @@
+//- Modal form for creating/editing an event. `event` is the form model
+//- (see toFormModel); `mode` is 'new' or 'edit'.
+.dialog-backdrop(onclick="if(event.target===this) document.getElementById('dialog').replaceChildren()")
+  form.event-form(
+    hx-post=(mode === 'new' ? '/events' : null)
+    hx-put=(mode === 'edit' ? '/events/' + event.id : null)
+    hx-target='#dialog'
+    hx-swap='innerHTML'
+  )
+    h2= mode === 'new' ? 'New event' : 'Edit event'
+
+    if error
+      .form-error= error
+
+    label.field
+      span Title
+      input(type='text' name='title' value=event.title required autofocus)
+
+    label.field
+      span Date
+      input(type='date' name='date' value=event.date required)
+
+    label.checkbox
+      input(type='checkbox' name='allDay' checked=event.allDay)
+      span All day
+
+    .times
+      label.field
+        span Start
+        input(type='time' name='startTime' value=event.startTime)
+      label.field
+        span End
+        input(type='time' name='endTime' value=event.endTime)
+
+    label.field
+      span Color
+      input(type='color' name='color' value=event.color)
+
+    label.field
+      span Notes
+      textarea(name='notes' rows='2')= event.notes
+
+    .form-actions
+      button.btn.ghost(type='button' onclick="document.getElementById('dialog').replaceChildren()") Cancel
+      button.btn.primary(type='submit') Save

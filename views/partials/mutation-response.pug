@@ -1,0 +1,5 @@
+//- Returned after a successful create/update/delete. The form targets
+//- #dialog (innerHTML), so this empty main body clears the dialog, while the
+//- out-of-band swap refreshes the agenda list.
+#track(hx-swap-oob='innerHTML')
+  include agenda

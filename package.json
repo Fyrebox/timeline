@@ -1,0 +1,19 @@
+{
+  "name": "timeline-app",
+  "version": "0.1.0",
+  "description": "A vertical, real-time timeline of upcoming events",
+  "type": "module",
+  "main": "app.mjs",
+  "scripts": {
+    "start": "node app.mjs",
+    "dev": "node --watch app.mjs",
+    "seed": "node scripts/seed.mjs",
+    "db": "mongod --dbpath ./data/db --port 27017"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "htmx.org": "^2.0.10",
+    "mongoose": "^8.9.5",
+    "pug": "^3.0.3"
+  }
+}
