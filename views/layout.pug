@@ -29,3 +29,13 @@ html(lang="en")
           navigator.serviceWorker.register('/sw.js').catch(() => {});
         });
       }
+      // Toggle an event's notes when its title is clicked. Delegated so it keeps
+      // working after HTMX swaps the list.
+      document.addEventListener('click', (e) => {
+        const title = e.target.closest('.event-title.has-notes');
+        if (!title) return;
+        const notes = title.parentElement.querySelector('.event-notes');
+        if (!notes) return;
+        notes.hidden = !notes.hidden;
+        title.classList.toggle('open', !notes.hidden);
+      });

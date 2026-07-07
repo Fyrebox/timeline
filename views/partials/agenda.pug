@@ -7,8 +7,10 @@ else
       each e in g.events
         .event(class=(e.allDay ? 'all-day' : '') style='--evt:' + e.color)
           .event-main
-            .event-title= e.title
+            .event-title(class=(e.notes ? 'has-notes' : ''))= e.title
             .event-time= e.timeText
+            if e.notes
+              .event-notes(hidden)= e.notes
           .event-actions
             button.icon-btn(hx-get='/events/' + e.id + '/edit' hx-target='#dialog' hx-swap='innerHTML' title='Edit') Edit
             button.icon-btn.danger(hx-delete='/events/' + e.id hx-swap='none' hx-confirm='Delete this event?' title='Delete') Delete
