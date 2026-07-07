@@ -67,11 +67,15 @@ app.use(
 );
 
 // Consent form submission (the browser step of the authorization flow).
-app.post('/oauth/consent', (req, res) => {
-  const { requestId, password } = req.body;
-  const result = completeConsent(requestId, password);
-  if (result.redirectTo) return res.redirect(result.redirectTo);
-  return res.status(result.errorPage ? 400 : 401).type('html').send(result.errorPage);
+app.post('/oauth/consent', async (req, res, next) => {
+  try {
+    const { requestId, password } = req.body;
+    const result = await completeConsent(requestId, password);
+    if (result.redirectTo) return res.redirect(result.redirectTo);
+    return res.status(400).type('html').send(result.errorPage);
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.use('/', pagesRouter);

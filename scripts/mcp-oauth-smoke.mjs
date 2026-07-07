@@ -157,6 +157,7 @@ const refreshed = await j(
 results.refreshWorks = !!refreshed.access_token;
 
 console.log(JSON.stringify(results, null, 2));
+if (process.env.PRINT_TOKEN) console.log(`ACCESS_TOKEN=${tok.access_token}`);
 const passed = Object.entries(results).every(([k, v]) => (k === 'discoveredAS' || k === 'toolCount' ? true : v === true));
 console.log(`\n${passed ? 'PASS ✅' : 'FAIL ❌'}`);
 process.exit(passed ? 0 : 1);
