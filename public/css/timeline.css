@@ -96,7 +96,7 @@ html, body {
 .fab {
   position: fixed;
   right: 28px;
-  bottom: 28px;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
   width: 56px;
   height: 56px;
   border-radius: 50%;

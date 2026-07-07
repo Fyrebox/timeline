@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b9bff"/>
+      <stop offset="1" stop-color="#3352c9"/>
+    </linearGradient>
+  </defs>
+  <!-- rounded tile for in-app / favicon display -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="150" y="126" width="12" height="260" rx="6" fill="#ffffff" opacity="0.38"/>
+  <rect x="198" y="132" width="188" height="36" rx="12" fill="#ffffff" opacity="0.96"/>
+  <rect x="198" y="238" width="188" height="36" rx="12" fill="#ffffff" opacity="0.62"/>
+  <rect x="198" y="344" width="188" height="36" rx="12" fill="#ffffff" opacity="0.40"/>
+  <circle cx="156" cy="150" r="30" fill="#3352c9"/>
+  <circle cx="156" cy="150" r="30" fill="none" stroke="#ffffff" stroke-width="10"/>
+  <circle cx="156" cy="150" r="9" fill="#ffffff"/>
+  <circle cx="156" cy="256" r="17" fill="#ffffff" opacity="0.9"/>
+  <circle cx="156" cy="362" r="17" fill="#ffffff" opacity="0.7"/>
+</svg>
