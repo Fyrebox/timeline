@@ -26,7 +26,9 @@ html, body {
 .timeline-track {
   max-width: 720px;
   margin: 0 auto;
-  padding: 8px 20px 40vh; /* trailing space so the last day can scroll up */
+  /* Top inset keeps the first day header from being pushed over the first
+     event by the sticky offset on notched iPhones (0 in a normal browser). */
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 20px 40vh;
 }
 
 /* ---- Day groups ---- */
@@ -46,7 +48,7 @@ html, body {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
-  background: linear-gradient(180deg, var(--bg) 70%, transparent);
+  background: var(--bg);
 }
 
 /* ---- Events ---- */
