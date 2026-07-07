@@ -7,6 +7,9 @@ import { createOAuthProvider } from './lib/oauth-provider.mjs';
 import pagesRouter from './routes/pages.mjs';
 import eventsRouter from './routes/events.mjs';
 import mcpRouter from './routes/mcp.mjs';
+import pushRouter from './routes/push.mjs';
+import { configurePush } from './lib/push.mjs';
+import { scheduleDailyDigest } from './lib/notify.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -87,6 +90,7 @@ app.post('/oauth/consent', async (req, res, next) => {
 
 app.use('/', pagesRouter);
 app.use('/events', eventsRouter);
+app.use('/push', pushRouter);
 app.use(
   '/mcp',
   mcpRouter({
@@ -103,6 +107,10 @@ app.use((err, req, res, next) => {
 
 // Try Mongo (non-fatal in Phase 1), then start.
 await connectMongo(MONGODB_URI);
+
+// Push notifications: configure VAPID and schedule the daily 7am digest.
+configurePush();
+scheduleDailyDigest();
 
 app.listen(PORT, () => {
   console.log(`[timeline] ${PUBLIC_URL} (listening on :${PORT})`);

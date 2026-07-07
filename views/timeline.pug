@@ -10,5 +10,11 @@ block content
   //- Modal mount point; filled by HTMX, emptied on save/cancel.
   #dialog
 
-  //- Floating add button.
+  //- Floating actions.
+  button.notify-fab#notify-btn(type='button' title='Turn on 7am notifications' aria-pressed='false' hidden)
+    svg(viewBox='0 0 24 24' width='22' height='22' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round')
+      path(d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9')
+      path(d='M13.73 21a2 2 0 0 1-3.46 0')
   button.fab(hx-get='/events/new' hx-target='#dialog' hx-swap='innerHTML' title='New event') +
+
+  script(type='module' src='/js/push.mjs?v=' + (assetVersion || '0') defer)

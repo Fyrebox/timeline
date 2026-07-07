@@ -134,6 +134,32 @@ html, body {
 }
 .fab:hover { background: #6ea0ff; }
 
+/* Notifications toggle, stacked above the add button */
+.notify-fab {
+  position: fixed;
+  right: 34px;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 30;
+}
+.notify-fab:hover { color: var(--text); }
+.notify-fab.on {
+  background: #4f8cff;
+  border-color: #4f8cff;
+  color: #fff;
+}
+.notify-fab[disabled] { opacity: 0.5; cursor: default; }
+
 /* ---- Modal dialog ---- */
 .dialog-backdrop {
   position: fixed;
