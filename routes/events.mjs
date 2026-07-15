@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { findUpcoming, createEvent, updateEvent, deleteEvent, getEvent } from '../models/event.mjs';
+import { findForTimeline, createEvent, updateEvent, deleteEvent, completeEvent, getEvent } from '../models/event.mjs';
 import { buildAgenda, toFormModel } from '../lib/agenda.mjs';
 
 const router = Router();
@@ -39,7 +39,7 @@ function parseEventBody(b) {
 }
 
 async function renderAgenda(res, view) {
-  const groups = buildAgenda(await findUpcoming());
+  const groups = buildAgenda(await findForTimeline());
   res.render(view, { groups });
 }
 
@@ -85,6 +85,14 @@ router.put('/:id', async (req, res, next) => {
       return res.render('partials/event-form', { mode: 'edit', event: { ...toFormModel(evt), ...req.body }, error });
     }
     await updateEvent(req.params.id, data);
+    await renderAgenda(res, 'partials/mutation-response');
+  } catch (err) { next(err); }
+});
+
+// Mark done -> drops off the timeline.
+router.post('/:id/done', async (req, res, next) => {
+  try {
+    await completeEvent(req.params.id);
     await renderAgenda(res, 'partials/mutation-response');
   } catch (err) { next(err); }
 });

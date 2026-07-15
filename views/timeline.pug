@@ -10,6 +10,14 @@ block content
   //- Modal mount point; filled by HTMX for the edit form.
   #dialog
 
+  //- On first load, jump to the next upcoming event so past (uncompleted)
+  //- events sit above the fold — scroll up to reach them. Runs once; the 60s
+  //- poll re-renders the list but must not yank the user's scroll position.
+  script.
+    requestAnimationFrame(() => {
+      document.getElementById('now-anchor')?.scrollIntoView({ block: 'start' });
+    });
+
   //- No floating buttons on the home page — events are created via MCP.
   //- The add (+) button, the notifications bell, and /js/push.mjs are
   //- intentionally omitted here; the push backend stays intact so the bell

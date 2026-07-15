@@ -8,7 +8,9 @@ const eventSchema = new mongoose.Schema(
     endsAt: { type: Date, default: null },
     allDay: { type: Boolean, default: false },
     color: { type: String, default: '#4f8cff' },
-    notes: { type: String, default: '' }
+    notes: { type: String, default: '' },
+    // When set, the event has been marked done and drops off the timeline.
+    completedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );
@@ -16,12 +18,25 @@ const eventSchema = new mongoose.Schema(
 export const Event = mongoose.model('Event', eventSchema);
 
 /**
+ * Every event still on the timeline (not marked done), sorted ascending. This
+ * includes *past* events that were never completed, so the user can scroll up
+ * to find things they still haven't dealt with. The view splits past from
+ * upcoming for display.
+ */
+export async function findForTimeline({ limit = 500 } = {}) {
+  return Event.find({ completedAt: null })
+    .sort({ startsAt: 1 })
+    .limit(limit)
+    .lean();
+}
+
+/**
  * Upcoming events for the agenda view: everything from the start of today
  * onward, sorted ascending. The client drops events that have already ended,
  * so we fetch from midnight to keep any in-progress event visible.
  */
 export async function findUpcoming({ from = startOfToday(), limit = 500 } = {}) {
-  return Event.find({ startsAt: { $gte: from } })
+  return Event.find({ startsAt: { $gte: from }, completedAt: null })
     .sort({ startsAt: 1 })
     .limit(limit)
     .lean();
@@ -39,6 +54,7 @@ function startOfToday() {
  */
 export async function findNext({ limit = 10, now = new Date() } = {}) {
   return Event.find({
+    completedAt: null,
     $or: [
       { endsAt: { $gte: now } },
       { endsAt: null, startsAt: { $gte: now } }
@@ -60,6 +76,11 @@ export async function updateEvent(id, data) {
 
 export async function deleteEvent(id) {
   return Event.findByIdAndDelete(id);
+}
+
+/** Mark an event done so it drops off the timeline. */
+export async function completeEvent(id, now = new Date()) {
+  return Event.findByIdAndUpdate(id, { completedAt: now }, { new: true });
 }
 
 export async function getEvent(id) {

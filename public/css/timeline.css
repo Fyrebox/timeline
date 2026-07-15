@@ -36,6 +36,16 @@ html, body {
   margin-top: 8px;
 }
 
+/* Zero-height marker used to scroll the next upcoming event to the top on
+   load. scroll-margin keeps it clear of the sticky day header. */
+#now-anchor {
+  scroll-margin-top: calc(46px + env(safe-area-inset-top, 0px));
+}
+
+/* Past, still-uncompleted events sit above the fold (scroll up to reach them)
+   and read as dimmed so the focus stays on what's coming. */
+.day-group.past .day-header { opacity: 0.6; }
+
 .day-header {
   position: sticky;
   /* Sticky headers stop below the iPhone notch / Dynamic Island in
@@ -66,6 +76,11 @@ html, body {
 .event.all-day {
   background: color-mix(in srgb, var(--evt) 16%, var(--panel));
 }
+.event.past {
+  opacity: 0.55;
+  box-shadow: none;
+}
+.event.past:hover { opacity: 1; }
 .event-main { flex: 1 1 auto; min-width: 0; }
 .event-title { font-weight: 600; }
 .event-title.has-notes { cursor: pointer; }
@@ -108,6 +123,7 @@ html, body {
   cursor: pointer;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--muted); }
+.icon-btn.done:hover { color: #26de81; border-color: #26de81; }
 .icon-btn.danger:hover { color: #ff6b6b; border-color: #ff6b6b; }
 
 .empty {

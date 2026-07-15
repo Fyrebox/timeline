@@ -2,15 +2,19 @@ if !groups || groups.length === 0
   .empty Nothing coming up.
 else
   each g in groups
-    section.day-group
+    section.day-group(class=(g.past ? 'past' : ''))
       .day-header= g.label
       each e in g.events
-        .event(class=(e.allDay ? 'all-day' : '') style='--evt:' + e.color)
+        //- Anchor the initial scroll position at the next upcoming event.
+        if e.isNext
+          #now-anchor
+        .event(class=[e.allDay ? 'all-day' : '', e.past ? 'past' : ''].filter(Boolean).join(' ') style='--evt:' + e.color)
           .event-main
             .event-title(class=(e.notes ? 'has-notes' : ''))= e.title
             .event-time= e.timeText
             if e.notes
               .event-notes(hidden)!= e.notesHtml
           .event-actions
+            button.icon-btn.done(hx-post='/events/' + e.id + '/done' hx-swap='none' title='Mark as done') Done
             button.icon-btn(hx-get='/events/' + e.id + '/edit' hx-target='#dialog' hx-swap='innerHTML' title='Edit') Edit
             button.icon-btn.danger(hx-delete='/events/' + e.id hx-swap='none' hx-confirm='Delete this event?' title='Delete') Delete
