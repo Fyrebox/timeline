@@ -11,10 +11,13 @@ else
         .event(class=[e.allDay ? 'all-day' : '', e.past ? 'past' : ''].filter(Boolean).join(' ') style='--evt:' + e.color)
           .event-main
             .event-title(class=(e.notes ? 'has-notes' : ''))= e.title
-            .event-time= e.timeText
+            .event-time
+              span= e.timeText
+              if showBadges && e.timelineName
+                span.tl-badge(style='--tl:' + e.timelineColor)= e.timelineName
             if e.notes
               .event-notes(hidden)!= e.notesHtml
           .event-actions
-            button.icon-btn.done(hx-post='/events/' + e.id + '/done' hx-swap='none' title='Mark as done') Done
-            button.icon-btn(hx-get='/events/' + e.id + '/edit' hx-target='#dialog' hx-swap='innerHTML' title='Edit') Edit
-            button.icon-btn.danger(hx-delete='/events/' + e.id hx-swap='none' hx-confirm='Delete this event?' title='Delete') Delete
+            button.icon-btn.done(hx-post='/events/' + e.id + '/done' + (tq || '') hx-swap='none' title='Mark as done') Done
+            button.icon-btn(hx-get='/events/' + e.id + '/edit' + (tq || '') hx-target='#dialog' hx-swap='innerHTML' title='Edit') Edit
+            button.icon-btn.danger(hx-delete='/events/' + e.id + (tq || '') hx-swap='none' hx-confirm='Delete this event?' title='Delete') Delete

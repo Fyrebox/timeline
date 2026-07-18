@@ -2,6 +2,7 @@
 // Usage: MONGODB_URI=... node scripts/seed.mjs   (defaults to local mongo)
 import mongoose from 'mongoose';
 import { Event } from '../models/event.mjs';
+import { ensureDefaultTimeline } from '../models/timeline.mjs';
 import { generateFakeEvents } from '../models/fakeEvents.mjs';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/timeline';
@@ -13,6 +14,7 @@ async function main() {
   const docs = generateFakeEvents().map(({ _id, ...rest }) => rest); // drop the fake string ids
   await Event.deleteMany({});
   const inserted = await Event.insertMany(docs);
+  await ensureDefaultTimeline(); // create the default timeline and adopt the new events
 
   console.log(`[seed] cleared collection and inserted ${inserted.length} events:`);
   for (const e of inserted) {

@@ -1,0 +1,32 @@
+extends layout
+
+block content
+  .admin-page
+    .admin-header
+      h1 Timelines
+      a.back-link(href='/') ‹ Back to timeline
+
+    if error
+      .form-error= error
+
+    .timeline-list
+      each t in timelines
+        form.timeline-row(method='post' action='/admin/timelines/' + t._id)
+          input.color-input(type='color' name='color' value=t.color title='Timeline color')
+          input.name-input(type='text' name='name' value=t.name required)
+          span.event-count= t.eventCount + (t.eventCount === 1 ? ' event' : ' events')
+          if t.isDefault
+            span.default-badge Default
+          button.btn.ghost(type='submit') Save
+          if !t.isDefault
+            button.btn.ghost.danger(
+              type='submit'
+              formaction='/admin/timelines/' + t._id + '/delete'
+              onclick="return confirm('Delete this timeline? Its events will move to the default timeline.')"
+            ) Delete
+
+    h2 New timeline
+    form.timeline-row.new-row(method='post' action='/admin/timelines')
+      input.color-input(type='color' name='color' value=newColor title='Timeline color')
+      input.name-input(type='text' name='name' placeholder='e.g. Work, Family…' required)
+      button.btn.primary(type='submit') Create

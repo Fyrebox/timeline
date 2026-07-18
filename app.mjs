@@ -2,10 +2,12 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mcpAuthRouter, getOAuthProtectedResourceMetadataUrl } from '@modelcontextprotocol/sdk/server/auth/router.js';
-import { connectMongo } from './db/mongo.mjs';
+import { connectMongo, isConnected } from './db/mongo.mjs';
 import { createOAuthProvider } from './lib/oauth-provider.mjs';
+import { ensureDefaultTimeline } from './models/timeline.mjs';
 import pagesRouter from './routes/pages.mjs';
 import eventsRouter from './routes/events.mjs';
+import adminRouter from './routes/admin.mjs';
 import mcpRouter from './routes/mcp.mjs';
 import pushRouter from './routes/push.mjs';
 import { configurePush } from './lib/push.mjs';
@@ -90,6 +92,7 @@ app.post('/oauth/consent', async (req, res, next) => {
 
 app.use('/', pagesRouter);
 app.use('/events', eventsRouter);
+app.use('/admin', adminRouter);
 app.use('/push', pushRouter);
 app.use(
   '/mcp',
@@ -107,6 +110,9 @@ app.use((err, req, res, next) => {
 
 // Try Mongo (non-fatal in Phase 1), then start.
 await connectMongo(MONGODB_URI);
+
+// Guarantee a default timeline exists and every event belongs to one.
+if (isConnected()) await ensureDefaultTimeline();
 
 // Push notifications: configure VAPID and schedule the daily 7am digest.
 configurePush();

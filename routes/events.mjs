@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { findForTimeline, createEvent, updateEvent, deleteEvent, completeEvent, getEvent } from '../models/event.mjs';
+import { listTimelines, getDefaultTimeline } from '../models/timeline.mjs';
 import { buildAgenda, toFormModel } from '../lib/agenda.mjs';
 
 const router = Router();
+
+/** Re-encode the active timeline filter so it can ride along on form URLs. */
+const tqOf = (req) => (req.query.timeline ? `?timeline=${encodeURIComponent(req.query.timeline)}` : '');
 
 /** Parse form body -> event fields. Returns { data } or { error }. */
 function parseEventBody(b) {
@@ -33,26 +37,48 @@ function parseEventBody(b) {
       endsAt,
       allDay,
       color: b.color || '#4f8cff',
-      notes: (b.notes || '').trim()
+      notes: (b.notes || '').trim(),
+      // Only set when the form sent one, so an update never clears it.
+      ...(b.timelineId ? { timelineId: b.timelineId } : {})
     }
   };
 }
 
-async function renderAgenda(res, view) {
-  const groups = buildAgenda(await findForTimeline());
-  res.render(view, { groups });
+/**
+ * Render the agenda respecting the active timeline filter (?timeline=slug),
+ * which every agenda-refreshing request carries so polls and mutations keep
+ * the user's current view.
+ */
+async function renderAgenda(req, res, view) {
+  const timelines = await listTimelines();
+  const byId = new Map(timelines.map((t) => [String(t._id), t]));
+  const selected = timelines.find((t) => t.slug === req.query.timeline) || null;
+  const events = await findForTimeline({ timelineId: selected?._id });
+  res.render(view, {
+    groups: buildAgenda(events, new Date(), byId),
+    tq: selected ? `?timeline=${selected.slug}` : '',
+    showBadges: !selected && timelines.length > 1
+  });
 }
 
 // Agenda list only (used by the 60s poll).
 router.get('/list', async (req, res, next) => {
   try {
-    await renderAgenda(res, 'partials/agenda');
+    await renderAgenda(req, res, 'partials/agenda');
   } catch (err) { next(err); }
 });
 
 // Empty form for a new event.
-router.get('/new', (req, res) => {
-  res.render('partials/event-form', { mode: 'new', event: toFormModel(null) });
+router.get('/new', async (req, res, next) => {
+  try {
+    const timelines = await listTimelines();
+    const event = toFormModel(null);
+    // Preselect the timeline being viewed, else the default.
+    const selected = timelines.find((t) => t.slug === req.query.timeline);
+    const def = timelines.find((t) => t.isDefault);
+    event.timelineId = String((selected || def || {})._id || '');
+    res.render('partials/event-form', { mode: 'new', event, timelines, tq: tqOf(req) });
+  } catch (err) { next(err); }
 });
 
 // Populated form for editing.
@@ -60,7 +86,8 @@ router.get('/:id/edit', async (req, res, next) => {
   try {
     const evt = await getEvent(req.params.id);
     if (!evt) return res.status(404).send('Event not found');
-    res.render('partials/event-form', { mode: 'edit', event: toFormModel(evt) });
+    const timelines = await listTimelines();
+    res.render('partials/event-form', { mode: 'edit', event: toFormModel(evt), timelines, tq: tqOf(req) });
   } catch (err) { next(err); }
 });
 
@@ -69,10 +96,12 @@ router.post('/', async (req, res, next) => {
   try {
     const { data, error } = parseEventBody(req.body);
     if (error) {
-      return res.render('partials/event-form', { mode: 'new', event: { ...toFormModel(null), ...req.body }, error });
+      const timelines = await listTimelines();
+      return res.render('partials/event-form', { mode: 'new', event: { ...toFormModel(null), ...req.body }, timelines, tq: tqOf(req), error });
     }
+    if (!data.timelineId) data.timelineId = (await getDefaultTimeline())?._id ?? null;
     await createEvent(data);
-    await renderAgenda(res, 'partials/mutation-response');
+    await renderAgenda(req, res, 'partials/mutation-response');
   } catch (err) { next(err); }
 });
 
@@ -82,10 +111,11 @@ router.put('/:id', async (req, res, next) => {
     const { data, error } = parseEventBody(req.body);
     if (error) {
       const evt = await getEvent(req.params.id);
-      return res.render('partials/event-form', { mode: 'edit', event: { ...toFormModel(evt), ...req.body }, error });
+      const timelines = await listTimelines();
+      return res.render('partials/event-form', { mode: 'edit', event: { ...toFormModel(evt), ...req.body }, timelines, tq: tqOf(req), error });
     }
     await updateEvent(req.params.id, data);
-    await renderAgenda(res, 'partials/mutation-response');
+    await renderAgenda(req, res, 'partials/mutation-response');
   } catch (err) { next(err); }
 });
 
@@ -93,7 +123,7 @@ router.put('/:id', async (req, res, next) => {
 router.post('/:id/done', async (req, res, next) => {
   try {
     await completeEvent(req.params.id);
-    await renderAgenda(res, 'partials/mutation-response');
+    await renderAgenda(req, res, 'partials/mutation-response');
   } catch (err) { next(err); }
 });
 
@@ -101,7 +131,7 @@ router.post('/:id/done', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     await deleteEvent(req.params.id);
-    await renderAgenda(res, 'partials/mutation-response');
+    await renderAgenda(req, res, 'partials/mutation-response');
   } catch (err) { next(err); }
 });
 

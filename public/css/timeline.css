@@ -23,12 +23,49 @@ html, body {
   overflow-x: hidden;
 }
 
+/* ---- Timeline switcher bar ---- */
+/* Sticky at the very top; day headers stick just below it (--bar-h). */
+:root { --bar-h: 46px; }
+
+.switch-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 720px;
+  margin: 0 auto;
+  height: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
+  padding: calc(env(safe-area-inset-top, 0px)) 20px 0;
+  background: var(--bg);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.switch-bar::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.chip:hover { color: var(--text); border-color: var(--muted); }
+.chip.active {
+  color: var(--text);
+  border-color: var(--tl, #4f8cff);
+  background: color-mix(in srgb, var(--tl, #4f8cff) 22%, var(--panel));
+}
+.chip.admin-link { margin-left: auto; border: none; font-size: 15px; padding: 5px 6px; }
+
 .timeline-track {
   max-width: 720px;
   margin: 0 auto;
-  /* Top inset keeps the first day header from being pushed over the first
-     event by the sticky offset on notched iPhones (0 in a normal browser). */
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 20px 40vh;
+  padding: 2px 20px 40vh;
 }
 
 /* ---- Day groups ---- */
@@ -37,9 +74,9 @@ html, body {
 }
 
 /* Zero-height marker used to scroll the next upcoming event to the top on
-   load. scroll-margin keeps it clear of the sticky day header. */
+   load. scroll-margin keeps it clear of the switcher bar + sticky day header. */
 #now-anchor {
-  scroll-margin-top: calc(46px + env(safe-area-inset-top, 0px));
+  scroll-margin-top: calc(var(--bar-h) + 46px + env(safe-area-inset-top, 0px));
 }
 
 /* Past, still-uncompleted events sit above the fold (scroll up to reach them)
@@ -48,9 +85,9 @@ html, body {
 
 .day-header {
   position: sticky;
-  /* Sticky headers stop below the iPhone notch / Dynamic Island in
-     standalone PWA mode (0 in a normal browser). */
-  top: env(safe-area-inset-top, 0px);
+  /* Sticky headers stop below the switcher bar, which itself sits below the
+     iPhone notch / Dynamic Island in standalone PWA mode. */
+  top: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
   z-index: 5;
   padding: 14px 4px 8px;
   font-size: 12px;
@@ -93,6 +130,17 @@ html, body {
 }
 .event-title.has-notes.open::after { transform: rotate(90deg); }
 .event-time { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* Timeline badge, shown in the "All" view when several timelines exist. */
+.tl-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--tl, #4f8cff) 28%, var(--panel));
+}
 .event-notes {
   margin-top: 8px;
   font-size: 13px;
@@ -130,6 +178,70 @@ html, body {
   color: var(--muted);
   padding: 40px 4px;
 }
+
+/* ---- Admin: timeline management ---- */
+.admin-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 20px 60px;
+}
+.admin-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.admin-page h1 { margin: 0; font-size: 22px; }
+.admin-page h2 { margin: 28px 0 10px; font-size: 15px; color: var(--muted); }
+.back-link { color: var(--muted); text-decoration: none; font-size: 14px; }
+.back-link:hover { color: var(--text); }
+
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.timeline-row .color-input {
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+.timeline-row .name-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font: inherit;
+}
+.timeline-row .event-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.default-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #4f8cff 25%, var(--panel));
+  color: var(--text);
+}
+.btn.danger { background: transparent; color: var(--muted); }
+.btn.danger:hover { color: #ff6b6b; border-color: #ff6b6b; }
+.new-row { background: transparent; border-style: dashed; }
 
 /* ---- Floating add button ---- */
 .fab {

@@ -10,7 +10,10 @@ const eventSchema = new mongoose.Schema(
     color: { type: String, default: '#4f8cff' },
     notes: { type: String, default: '' },
     // When set, the event has been marked done and drops off the timeline.
-    completedAt: { type: Date, default: null }
+    completedAt: { type: Date, default: null },
+    // Which timeline the event belongs to. Backfilled to the default timeline
+    // on startup, so null only exists transiently.
+    timelineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Timeline', default: null, index: true }
   },
   { timestamps: true }
 );
@@ -23,8 +26,10 @@ export const Event = mongoose.model('Event', eventSchema);
  * to find things they still haven't dealt with. The view splits past from
  * upcoming for display.
  */
-export async function findForTimeline({ limit = 500 } = {}) {
-  return Event.find({ completedAt: null })
+export async function findForTimeline({ limit = 500, timelineId = null } = {}) {
+  const filter = { completedAt: null };
+  if (timelineId) filter.timelineId = timelineId;
+  return Event.find(filter)
     .sort({ startsAt: 1 })
     .limit(limit)
     .lean();
@@ -52,14 +57,16 @@ function startOfToday() {
  * The next N events that haven't ended yet (in-progress events included),
  * sorted soonest-first. Used by the MCP server.
  */
-export async function findNext({ limit = 10, now = new Date() } = {}) {
-  return Event.find({
+export async function findNext({ limit = 10, now = new Date(), timelineId = null } = {}) {
+  const filter = {
     completedAt: null,
     $or: [
       { endsAt: { $gte: now } },
       { endsAt: null, startsAt: { $gte: now } }
     ]
-  })
+  };
+  if (timelineId) filter.timelineId = timelineId;
+  return Event.find(filter)
     .sort({ startsAt: 1 })
     .limit(limit)
     .lean();

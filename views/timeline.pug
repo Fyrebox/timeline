@@ -2,9 +2,22 @@ extends layout
 
 block content
   .timeline-viewport#viewport
+    //- Timeline switcher: "All" + one chip per timeline, plus the admin link.
+    //- Switching is a normal navigation so the poll URL below stays correct.
+    nav.switch-bar
+      a.chip(class=(!selected ? 'active' : '') href='/') All
+      each t in timelines
+        a.chip(
+          class=(selected && selected.slug === t.slug ? 'active' : '')
+          href='/?timeline=' + t.slug
+          style='--tl:' + t.color
+        )= t.name
+      a.chip.admin-link(href='/admin' title='Manage timelines') ⚙
+
     //- Server-rendered agenda. Polls every 60s so passed events drop off,
-    //- and is OOB-swapped by create/update/delete.
-    .timeline-track#track(hx-get='/events/list' hx-trigger='every 60s' hx-target='#track' hx-swap='innerHTML')
+    //- and is OOB-swapped by create/update/delete. The poll carries the
+    //- active timeline filter so it re-renders the same view.
+    .timeline-track#track(hx-get='/events/list' + tq hx-trigger='every 60s' hx-target='#track' hx-swap='innerHTML')
       include partials/agenda
 
   //- Modal mount point; filled by HTMX for the edit form.
@@ -17,8 +30,3 @@ block content
     requestAnimationFrame(() => {
       document.getElementById('now-anchor')?.scrollIntoView({ block: 'start' });
     });
-
-  //- No floating buttons on the home page — events are created via MCP.
-  //- The add (+) button, the notifications bell, and /js/push.mjs are
-  //- intentionally omitted here; the push backend stays intact so the bell
-  //- can be re-added later.

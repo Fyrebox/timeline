@@ -10,8 +10,10 @@ import {
   deleteEvent,
   getEvent
 } from '../models/event.mjs';
+import { listTimelines, getDefaultTimeline, findTimelineByRef } from '../models/timeline.mjs';
 
-function serialize(evt) {
+function serialize(evt, timelinesById) {
+  const tl = timelinesById?.get(String(evt.timelineId)) || null;
   return {
     id: String(evt._id),
     title: evt.title,
@@ -19,8 +21,26 @@ function serialize(evt) {
     endsAt: evt.endsAt ? new Date(evt.endsAt).toISOString() : null,
     allDay: !!evt.allDay,
     color: evt.color || '#4f8cff',
-    notes: evt.notes || ''
+    notes: evt.notes || '',
+    timeline: tl ? tl.slug : null
   };
+}
+
+async function timelineMap() {
+  const timelines = await listTimelines();
+  return new Map(timelines.map((t) => [String(t._id), t]));
+}
+
+/**
+ * Resolve an optional timeline name/slug to a timeline doc.
+ * Returns { timeline } (null when no ref given) or { error } listing valid slugs.
+ */
+async function resolveTimeline(ref) {
+  if (!ref) return { timeline: null };
+  const timeline = await findTimelineByRef(ref);
+  if (timeline) return { timeline };
+  const valid = (await listTimelines()).map((t) => t.slug).join(', ');
+  return { error: `No timeline matches "${ref}". Valid timelines: ${valid || '(none yet)'}.` };
 }
 
 function ok(data, summary) {
@@ -49,21 +69,45 @@ function parseWhen(startsAt, endsAt, allDay) {
 }
 
 export function createTimelineServer() {
-  const server = new McpServer({ name: 'timeline', version: '1.0.0' });
+  const server = new McpServer({ name: 'timeline', version: '1.1.0' });
+
+  server.registerTool(
+    'list_timelines',
+    {
+      title: 'List timelines',
+      description:
+        'List all timelines (calendars) events can belong to. Use a timeline slug or name with the other tools to target a specific timeline.',
+      inputSchema: {}
+    },
+    async () => {
+      const timelines = (await listTimelines()).map((t) => ({
+        id: String(t._id),
+        name: t.name,
+        slug: t.slug,
+        color: t.color,
+        isDefault: !!t.isDefault
+      }));
+      return ok(timelines, `Found ${timelines.length} timeline(s).`);
+    }
+  );
 
   server.registerTool(
     'next_events',
     {
       title: 'List next events',
       description:
-        'Return the next upcoming events (soonest first, in-progress events included). Defaults to 10.',
+        'Return the next upcoming events (soonest first, in-progress events included). Defaults to 10 across all timelines; pass timeline to filter.',
       inputSchema: {
-        limit: z.number().int().min(1).max(50).optional().describe('How many events to return (default 10).')
+        limit: z.number().int().min(1).max(50).optional().describe('How many events to return (default 10).'),
+        timeline: z.string().optional().describe('Only events from this timeline (slug or name).')
       }
     },
-    async ({ limit }) => {
-      const events = (await findNext({ limit: limit ?? 10 })).map(serialize);
-      return ok(events, `Found ${events.length} upcoming event(s).`);
+    async ({ limit, timeline }) => {
+      const { timeline: tl, error } = await resolveTimeline(timeline);
+      if (error) return fail(error);
+      const byId = await timelineMap();
+      const events = (await findNext({ limit: limit ?? 10, timelineId: tl?._id })).map((e) => serialize(e, byId));
+      return ok(events, `Found ${events.length} upcoming event(s)${tl ? ` on "${tl.name}"` : ''}.`);
     }
   );
 
@@ -72,28 +116,33 @@ export function createTimelineServer() {
     {
       title: 'Create event',
       description:
-        'Create a new event. Provide startsAt (and optionally endsAt) as ISO 8601 datetimes. For an all-day event set allDay=true; endsAt is then ignored.',
+        'Create a new event. Provide startsAt (and optionally endsAt) as ISO 8601 datetimes. For an all-day event set allDay=true; endsAt is then ignored. Pass timeline (slug or name, see list_timelines) to choose which timeline it belongs to; defaults to the default timeline.',
       inputSchema: {
         title: z.string().min(1).describe('Event title.'),
         startsAt: z.string().describe('Start as ISO 8601, e.g. 2026-07-08T14:30:00.'),
         endsAt: z.string().optional().describe('End as ISO 8601 (optional).'),
         allDay: z.boolean().optional().describe('All-day event (default false).'),
         color: z.string().optional().describe('Hex color, e.g. #4f8cff.'),
-        notes: z.string().optional().describe('Free-form notes.')
+        notes: z.string().optional().describe('Free-form notes.'),
+        timeline: z.string().optional().describe('Timeline slug or name (default: the default timeline).')
       }
     },
-    async ({ title, startsAt, endsAt, allDay = false, color, notes }) => {
+    async ({ title, startsAt, endsAt, allDay = false, color, notes, timeline }) => {
       try {
         const { start, end } = parseWhen(startsAt, endsAt, allDay);
+        const { timeline: tl, error } = await resolveTimeline(timeline);
+        if (error) return fail(error);
+        const target = tl || (await getDefaultTimeline());
         const evt = await createEvent({
           title,
           startsAt: start,
           endsAt: end,
           allDay,
+          timelineId: target?._id ?? null,
           ...(color ? { color } : {}),
           ...(notes ? { notes } : {})
         });
-        return ok(serialize(evt.toObject()), `Created "${title}".`);
+        return ok(serialize(evt.toObject(), await timelineMap()), `Created "${title}"${target ? ` on "${target.name}"` : ''}.`);
       } catch (err) {
         return fail(`Could not create event: ${err.message}`);
       }
@@ -105,7 +154,7 @@ export function createTimelineServer() {
     {
       title: 'Update event',
       description:
-        'Update an existing event by id. Only the fields you pass are changed. To reschedule, pass startsAt (and endsAt).',
+        'Update an existing event by id. Only the fields you pass are changed. To reschedule, pass startsAt (and endsAt). Pass timeline (slug or name) to move the event to another timeline.',
       inputSchema: {
         id: z.string().describe('The event id.'),
         title: z.string().min(1).optional(),
@@ -113,10 +162,11 @@ export function createTimelineServer() {
         endsAt: z.string().nullable().optional().describe('New end as ISO 8601, or null to clear.'),
         allDay: z.boolean().optional(),
         color: z.string().optional(),
-        notes: z.string().optional()
+        notes: z.string().optional(),
+        timeline: z.string().optional().describe('Move the event to this timeline (slug or name).')
       }
     },
-    async ({ id, title, startsAt, endsAt, allDay, color, notes }) => {
+    async ({ id, title, startsAt, endsAt, allDay, color, notes, timeline }) => {
       try {
         const existing = await getEvent(id);
         if (!existing) return fail(`No event found with id ${id}.`);
@@ -126,6 +176,12 @@ export function createTimelineServer() {
         if (allDay !== undefined) update.allDay = allDay;
         if (color !== undefined) update.color = color;
         if (notes !== undefined) update.notes = notes;
+
+        if (timeline !== undefined) {
+          const { timeline: tl, error } = await resolveTimeline(timeline);
+          if (error) return fail(error);
+          update.timelineId = tl._id;
+        }
 
         if (startsAt !== undefined) {
           const start = new Date(startsAt);
@@ -143,7 +199,7 @@ export function createTimelineServer() {
         }
 
         const evt = await updateEvent(id, update);
-        return ok(serialize(evt.toObject()), `Updated "${evt.title}".`);
+        return ok(serialize(evt.toObject(), await timelineMap()), `Updated "${evt.title}".`);
       } catch (err) {
         return fail(`Could not update event: ${err.message}`);
       }
@@ -163,7 +219,7 @@ export function createTimelineServer() {
       try {
         const evt = await deleteEvent(id);
         if (!evt) return fail(`No event found with id ${id}.`);
-        return ok(serialize(evt.toObject()), `Deleted "${evt.title}".`);
+        return ok(serialize(evt.toObject(), await timelineMap()), `Deleted "${evt.title}".`);
       } catch (err) {
         return fail(`Could not delete event: ${err.message}`);
       }
